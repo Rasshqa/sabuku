@@ -1,0 +1,212 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  TEACHER
+  STUDENT
+}
+
+enum BookStatus {
+  NOT_STARTED
+  CONCEPT
+  WRITING
+  WAITING_FOR_REVIEW
+  REVISION
+  VERIFIED
+  COMPLETED
+}
+
+enum Visibility {
+  PRIVATE
+  SCHOOL
+  PUBLIC
+}
+
+enum FeedbackStatus {
+  OPEN
+  RESOLVED
+}
+
+model User {
+  id            String    @id @default(cuid())
+  name          String
+  username      String?   @unique
+  email         String    @unique
+  password      String
+  role          Role      @default(STUDENT)
+  studentId     String?   @unique
+  employeeId    String?   @unique
+  classId       String?
+  majorId       String?
+  profilePhoto  String?
+  status        String    @default("active")
+  createdAt     DateTime  @default(now())
+  updatedAt     DateTime  @updatedAt
+
+  class         Class?    @relation(fields: [classId], references: [id])
+  major         Major?    @relation(fields: [majorId], references: [id])
+  
+  books         Book[]    @relation("BookOwner")
+  mentorships   Mentorship[]
+  feedbacks     Feedback[]
+  activities    Activity[]
+
+  @@index([email])
+  @@index([username])
+  @@index([studentId])
+  @@index([role])
+  @@index([status])
+}
+
+model Class {
+  id        String   @id @default(cuid())
+  name      String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+}
+
+model Major {
+  id        String   @id @default(cuid())
+  name      String
+  code      String   @unique
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  users     User[]
+}
+
+model Book {
+  id              String      @id @default(cuid())
+  ownerId         String
+  title           String
+  subtitle        String?
+  synopsis        String?
+  genre           String?
+  language        String      @default("Indonesian")
+  coverImage      String?
+  status          BookStatus  @default(NOT_STARTED)
+  visibility      Visibility  @default(PRIVATE)
+  targetPages     Int         @default(60)
+  currentPageCount Int        @default(0)
+  a5PageCount     Int         @default(0)
+  createdAt       DateTime    @default(now())
+  updatedAt       DateTime    @updatedAt
+  completedAt     DateTime?
+
+  owner           User        @relation("BookOwner", fields: [ownerId], references: [id], onDelete: Cascade)
+  
+  versions        BookVersion[]
+  mentorships     Mentorship[]
+  milestones      Milestone[]
+  activities      Activity[]
+
+  @@index([ownerId])
+  @@index([status])
+  @@index([visibility])
+  @@index([createdAt])
+}
+
+model BookVersion {
+  id              String    @id @default(cuid())
+  bookId          String
+  versionNumber   Int
+  originalFileName String
+  originalFileUrl String
+  processedPdfUrl String?
+  fileType        String
+  fileSize        Int
+  totalPageCount  Int       @default(0)
+  a5PageCount     Int       @default(0)
+  nonA5PageCount  Int       @default(0)
+  uploadedBy      String
+  uploadedAt      DateTime  @default(now())
+  isCurrent       Boolean   @default(false)
+  isVerified      Boolean   @default(false)
+  processingStatus String   @default("pending")
+  processingError String?
+
+  book            Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  feedbacks       Feedback[]
+
+  @@index([bookId])
+  @@index([isCurrent])
+  @@index([isVerified])
+}
+
+model Mentorship {
+  id          String    @id @default(cuid())
+  bookId      String
+  teacherId   String
+  assignedAt  DateTime  @default(now())
+  status      String    @default("active")
+
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+  teacher     User      @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+  @@index([teacherId])
+}
+
+model Feedback {
+  id              String          @id @default(cuid())
+  bookVersionId   String
+  teacherId       String
+  pageNumber      Int?
+  comment         String
+  status          FeedbackStatus  @default(OPEN)
+  createdAt       DateTime        @default(now())
+  resolvedAt      DateTime?
+
+  bookVersion     BookVersion     @relation(fields: [bookVersionId], references: [id], onDelete: Cascade)
+  teacher         User            @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@index([bookVersionId])
+  @@index([teacherId])
+  @@index([status])
+}
+
+model Milestone {
+  id          String    @id @default(cuid())
+  bookId      String
+  title       String
+  description String?
+  isCompleted Boolean   @default(false)
+  completedAt DateTime?
+  order       Int       @default(0)
+
+  book        Book      @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([bookId])
+}
+
+model Activity {
+  id          String    @id @default(cuid())
+  userId      String
+  bookId      String?
+  type        String
+  metadata    Json?
+  createdAt   DateTime  @default(now())
+
+  user        User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+  book        Book?     @relation(fields: [bookId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([bookId])
+  @@index([createdAt])
+}
+
+model Settings {
+  id              String   @id @default(cuid())
+  key             String   @unique
+  value           String
+  updatedAt       DateTime @updatedAt
+}

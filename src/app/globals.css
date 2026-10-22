@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@layer base {
+  body {
+    background-color: #F7F7F8;
+  }
+}
+
+@layer components {
+  .editorial {
+    font-family: ui-monospace, monospace;
+  }
+}

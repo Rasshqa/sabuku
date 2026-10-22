@@ -1,0 +1,16 @@
+{
+  "aionui-permission-bridge": {
+    "enabled": true,
+    "PreToolUse": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"/opt/AionUi/resources/bundled-aioncore/linux-x64/aioncore\" antigravity-hook"
+          }
+        ]
+      }
+    ]
+  }
+}
